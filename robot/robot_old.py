@@ -11,6 +11,7 @@ from random import choices, randrange
 
 from matplotlib import pyplot as plt
 
+
 states = ['empty', "point", "wall"]
 actions = ["go_up", "go_down", "go_left", "go_right", "take_point"]
 

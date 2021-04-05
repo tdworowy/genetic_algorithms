@@ -2,7 +2,8 @@ import time
 import tkinter
 from collections import defaultdict
 from doctest import master
-from Playground.genetic_algorithm.robot.robot import generate_grid, Robot, Evolution, save_strategy
+
+from robot.robot import generate_grid, Robot
 
 
 class GUI:
