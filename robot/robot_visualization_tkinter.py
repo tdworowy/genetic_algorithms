@@ -3,7 +3,7 @@ import tkinter
 from collections import defaultdict
 from doctest import master
 
-from robot.robot import generate_grid, Robot
+from robot.robot import Robot, Evolution
 
 
 class GUI:
@@ -13,7 +13,7 @@ class GUI:
         self.top_frame = tkinter.Frame()
         self.button_frame = tkinter.Frame()
 
-        self.colours = {
+        self.colours = {  # TODO need to be update
             ("empty", 0): "blue",
             ("point", 0): "red",
             ("point", 1): "green",
@@ -30,7 +30,7 @@ class GUI:
         dic = {'x1': x, 'y1': y, 'x2': self.cell_size + x, 'y2': self.cell_size + y}
         return dic
 
-    def draw(self, grid: list, prev_grid: list):
+    def draw(self, grid: list, prev_grid: list):  # TODO need to be updated
         x = 0
         y = 0
         for row, prev_row in zip(grid, prev_grid):
@@ -87,9 +87,16 @@ if __name__ == "__main__":
     evolution.evolve()
     strategy = evolution.get_best()
 
-    grid = generate_grid(width // cell_size, height // cell_size, ["empty", "point"], [0.7, 0.3])
-    prev_grid = [[(-1, -1) for _ in range(width // cell_size)] for _ in
-                 range(height // cell_size)]
+    robot = Robot(
+        start_x=0,
+        start_y=0,
+        width=width // cell_size,
+        height=height // cell_size,
+        rewards=rewards,
+        weights=[0.3, 0.7])
+
+    grid = robot.grid
+    prev_grid = grid.copy()
 
     gui = GUI(width, height, cell_size)
     gui.main_loop()
@@ -97,12 +104,11 @@ if __name__ == "__main__":
     gui.draw(grid[0], prev_grid)
     prev_grid = [[value for value in row] for row in grid[0]]
 
-    robot = Robot(width // cell_size, height // cell_size, grid, rewards)
-
     for i in range(steps):
-        grid = robot.play_strategy(strategy)
+        robot.play_strategy(strategy, steps)
+        grid = robot.grid
         gui.draw(grid, prev_grid)
-        prev_grid = [[value for value in row] for row in grid]
+        prev_grid = grid.copy()
         time.sleep(0.3)
 
     print(f"Robot points: {robot.points}")
