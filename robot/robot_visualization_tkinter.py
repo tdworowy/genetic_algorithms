@@ -92,9 +92,9 @@ if __name__ == "__main__":
     evolution_parameters: dict = {
         "width": width // cell_size,
         "height": height // cell_size,
-        "init_pop_count": 2000,  # 2000
-        "generation_count": 200,  # 401
-        "env_per_strategy": 10,  # 25
+        "init_pop_count": 2500,  # 2000
+        "generation_count": 1500,  # 401
+        "env_per_strategy": 15,  # 25
         "keep_parents": True,
         "keep_best": 100,  # 300
         "moves": steps,

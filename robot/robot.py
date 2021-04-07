@@ -28,6 +28,7 @@ class Robot:
         self.grid = generate_grid(width=width, height=height, weights=weights)
 
         self.width, self.height = self.grid.shape
+        self.weights = weights
 
         self.wall_penalty = rewards["wall_penalty"]
         self.pickup_empty_penalty = rewards["pickup_empty_penalty"]
@@ -140,7 +141,7 @@ class Robot:
 
     def reset(self):
         self.points = 0
-        self.grid = generate_grid(width=20, height=20, weights=[0.7, 0.3])
+        self.grid = generate_grid(width=self.width, height=self.height, weights=self.weights)
         self.x = self.start_x
         self.y = self.start_y
 
