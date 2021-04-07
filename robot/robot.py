@@ -260,8 +260,11 @@ class Evolution:
         for i in range(self.generation_count):
             self.play_generation()
             generations.append(i)
-            results.append(list(self.get_best(1).values())[0])
+            result = list(self.get_best(1).values())[0]
+            results.append(result)
             self.generate_new_population()
+
+            print(f"Generation {i}/{self.generation_count}, result: {result}")
 
         self.plot_learning_curve(generations, results)
 

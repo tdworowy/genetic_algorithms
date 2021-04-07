@@ -92,15 +92,15 @@ if __name__ == "__main__":
     evolution_parameters: dict = {
         "width": width // cell_size,
         "height": height // cell_size,
-        "init_pop_count": 1000,  # 2000
-        "generation_count": 100,  # 401
-        "env_per_strategy": 5,  # 25
+        "init_pop_count": 2000,  # 2000
+        "generation_count": 200,  # 401
+        "env_per_strategy": 10,  # 25
         "keep_parents": True,
         "keep_best": 100,  # 300
         "moves": steps,
         "mutation_rate": 0.04,
         "rewards": rewards,
-        "random_start": True
+        "random_start": True # it makes evolution harder
     }
 
     evolution = Evolution(**evolution_parameters)
