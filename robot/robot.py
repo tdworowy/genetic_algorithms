@@ -2,7 +2,7 @@ from collections import Counter
 
 import numpy as np
 from itertools import product
-from random import choice
+from random import choice, randrange, choices
 from matplotlib import pyplot as plt
 
 
@@ -115,9 +115,11 @@ class Robot:
 
     def play_strategy(self, strategy: dict, moves_count: int):
         for _ in range(moves_count):
-            self.actions[
-                strategy[self.check_state()]
-            ]()
+                self.actions[
+                    strategy[self.check_state()]
+                ]()
+
+
 
     def reset(self):
         self.points = 0
@@ -145,8 +147,10 @@ def generate_strategy() -> dict:
 
 
 class Evolution:
+    STRATEGY_LEN = 243  # it is constant
+
     def __init__(self, init_pop_count: int, generation_count: int, env_per_strategy: int = 1,
-                 keep_parents: bool = True, keep_best: int = 1000, moves: int = 200, mutation_rate: float = 0.03,
+                 keep_parents: bool = True, keep_best: int = 200, moves: int = 200, mutation_rate: float = 0.03,
                  rewards: dict = None, width: int = 20, height: int = 20, weights=None):
 
         if weights is None:
@@ -157,11 +161,10 @@ class Evolution:
 
         self.moves = moves
         self.env_per_strategy = env_per_strategy
-        self.keep_parents = keep_parents
         self.init_pop_count = init_pop_count
         self.generation_count = generation_count
         self.keep_best = keep_best
-
+        self.keep_parents = keep_parents
         self.mutation_rate = mutation_rate
 
         self.population = {}
@@ -200,23 +203,85 @@ class Evolution:
                 self.robot.reset()
             self.results[number] = np.mean(points_per_env)
 
+    def generate_new_population(self):
+        new_population = {}
+        pop_count = 0
+        best = self._get_best(self.keep_best)
+        best_keys = list(best.keys())
+
+        if self.keep_parents:
+            for i, key in enumerate(best_keys):
+                new_population[i] = self.population[key]
+            pop_count = self.keep_best
+
+        for j in range(pop_count, self.init_pop_count):
+            key1 = choices(best_keys)[0]
+            key2 = choices([key for key in best_keys if key != key1])[0]
+
+            split_place = randrange(0, self.STRATEGY_LEN)
+
+            first_half = dict(list(self.population[key1].items())[:split_place])
+            second_half = dict(list(self.population[key2].items())[split_place:])
+
+            new_population[j] = first_half | second_half
+
+            if choices([0, 1], weights=[1 - self.mutation_rate, self.mutation_rate])[0]:
+                key = choices(list(new_population[j].keys()))[0]
+                new_population[j][key] = choices([1, 2, 3, 4, 5])[0]
+        self.population = new_population
+
+    def evolve(self):
+        generations = []
+        results = []
+        for i in range(self.generation_count):
+            self.play_generation()
+            generations.append(i)
+            results.append(list(self._get_best(1).values())[0])
+            self.generate_new_population()
+
+        self.plot_learning_curve(generations, results)
+
+    def get_best_strategy(self):
+        return self.population[list(self._get_best(1).keys())[0]]
+
 
 if __name__ == '__main__':
-    # rewards = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-    #            "pickup_reward": 5}
     # strategy = generate_strategy()
+    # print(strategy)
     # grid = generate_grid(width=20, height=20, weights=[0.7, 0.3])
     # robot = Robot(start_x=0, start_y=0, grid=grid, rewards=rewards)
     #
     # robot.play_strategy(strategy=strategy, moves_count=200)
     #
     # print(robot.points)
-    evolution = Evolution(init_pop_count=500,
-                          generation_count=10,
-                          env_per_strategy=5
+
+    rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
+                     "pickup_reward": 5}
+
+    evolution_parameters: dict = {
+        "width": 20,
+        "height": 20,
+        "init_pop_count": 500,  # 2000
+        "generation_count": 200,  # 401
+        "env_per_strategy": 5,  # 25
+        "keep_parents": True,
+        "keep_best": 50,  # 300
+        "moves": 200,
+        "mutation_rate": 0.04,
+        "rewards": rewards
+    }
+
+    evolution = Evolution(**evolution_parameters
                           )
     evolution.generate_init_population()
-    evolution.play_generation()
-    best_fife = evolution._get_best(5)
+    evolution.evolve()
+    best_strategy = evolution.get_best_strategy()
+    # print(best_strategy)
 
-    print(best_fife)
+    robot = Robot(start_x=0,
+                  start_y=0,
+                  rewards=rewards,
+                  width=20,
+                  height=20,
+                  weights=[0.3, 0.7])
+    robot.play_strategy(strategy=best_strategy, moves_count=200)

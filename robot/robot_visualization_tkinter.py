@@ -3,7 +3,7 @@ import tkinter
 from collections import defaultdict
 from doctest import master
 
-from robot.robot import Robot, Evolution
+from robot import Robot, Evolution
 
 
 class GUI:
@@ -13,12 +13,10 @@ class GUI:
         self.top_frame = tkinter.Frame()
         self.button_frame = tkinter.Frame()
 
-        self.colours = {  # TODO need to be update
-            ("empty", 0): "blue",
-            ("point", 0): "red",
-            ("point", 1): "green",
-            ("empty", 1): "green"}
-
+        self.colours = {
+            0: "blue",
+            1: "green"
+        }
         self.width = width
         self.height = height
         self.canvas = tkinter.Canvas(master, width=self.width, height=self.height)
@@ -65,27 +63,29 @@ if __name__ == "__main__":
     height: int = 400
     cell_size: int = 20
 
-    steps = 300
+    steps: int = 300
 
-    rewards = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-               "pickup_reward": 5}
+    rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
+                     "pickup_reward": 5}
 
-    evolution_parameters = {
+    evolution_parameters: dict = {
         "width": width // cell_size,
         "height": height // cell_size,
-        "init_pop_count": 2000,
-        "generation_count": 401,
-        "env_per_strategy": 25,
+        "init_pop_count": 200,  # 2000
+        "generation_count": 40,  # 401
+        "env_per_strategy": 5,  # 25
         "keep_parents": True,
-        "keep_best": 300,
+        "keep_best": 300,  # 300
         "moves": steps,
         "mutation_rate": 0.04,
         "rewards": rewards
     }
 
     evolution = Evolution(**evolution_parameters)
+    evolution.generate_init_population()
+
     evolution.evolve()
-    strategy = evolution.get_best()
+    strategy = evolution.get_best_strategy()
 
     robot = Robot(
         start_x=0,
