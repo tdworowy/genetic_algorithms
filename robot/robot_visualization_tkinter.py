@@ -84,7 +84,7 @@ if __name__ == "__main__":
     height: int = 400
     cell_size: int = 20
 
-    steps: int = 30  # 300
+    steps: int = 150  # 300
 
     rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
                      "pickup_reward": 5}
@@ -92,20 +92,22 @@ if __name__ == "__main__":
     evolution_parameters: dict = {
         "width": width // cell_size,
         "height": height // cell_size,
-        "init_pop_count": 200,  # 2000
-        "generation_count": 10,  # 401
+        "init_pop_count": 1000,  # 2000
+        "generation_count": 100,  # 401
         "env_per_strategy": 5,  # 25
         "keep_parents": True,
-        "keep_best": 300,  # 300
+        "keep_best": 100,  # 300
         "moves": steps,
         "mutation_rate": 0.04,
-        "rewards": rewards
+        "rewards": rewards,
+        "random_start": True
     }
 
     evolution = Evolution(**evolution_parameters)
     evolution.generate_init_population()
 
     evolution.evolve()
+    print(evolution.get_best(10))
     strategy = evolution.get_best_strategy()
 
     robot = Robot(
@@ -114,7 +116,7 @@ if __name__ == "__main__":
         width=width // cell_size,
         height=height // cell_size,
         rewards=rewards,
-        weights=[0.3, 0.7])
+        weights=[0.7, 0.3])
 
     grid = robot.grid.copy()
     prev_grid = np.full(grid.shape, -1)
@@ -126,7 +128,7 @@ if __name__ == "__main__":
     prev_grid = grid.copy()
 
     for i in range(steps):
-        robot.play_strategy(strategy, 1, debug=True)
+        robot.play_strategy(strategy, 1, debug=False)
         grid = robot.grid.copy()
         gui.draw(grid, prev_grid, robot.x, robot.y)
         prev_grid = grid.copy()

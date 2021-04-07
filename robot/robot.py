@@ -14,6 +14,11 @@ def generate_grid(width: int, height: int, weights: list) -> np.ndarray:
     return np.random.choice(a=[0, 1], size=(width, height), p=weights)
 
 
+def save_strategy(strategy: list):
+    with open("last_strategy.txt", 'a') as f:
+        f.write("\n" + str(strategy))
+
+
 class Robot:
     def __init__(self, start_x: int, start_y: int, rewards: dict, width: int, height: int, weights: list):
         self.x = self.start_x = start_x
@@ -43,6 +48,10 @@ class Robot:
             4: "go_right",
             5: "take_point"
         }
+
+    def set_start_position(self, start_x: int, start_y: int):
+        self.start_x = start_x
+        self.start_y = start_y
 
     def go_up(self):
         new_y = self.y - 1
@@ -159,7 +168,7 @@ class Evolution:
 
     def __init__(self, init_pop_count: int, generation_count: int, env_per_strategy: int = 1,
                  keep_parents: bool = True, keep_best: int = 200, moves: int = 200, mutation_rate: float = 0.03,
-                 rewards: dict = None, width: int = 20, height: int = 20, weights=None):
+                 rewards: dict = None, width: int = 20, height: int = 20, weights=None, random_start=False):
 
         if weights is None:
             weights = [0.7, 0.3]
@@ -183,6 +192,8 @@ class Evolution:
         self.height = height
         self.weights = weights
 
+        self.random_start = random_start
+
         self.robot = Robot(start_x=0,
                            start_y=0,
                            rewards=self.rewards,
@@ -195,7 +206,7 @@ class Evolution:
         plt.plot(generations, result)
         plt.show()
 
-    def _get_best(self, top: int) -> dict:
+    def get_best(self, top: int) -> dict:
         return dict(Counter(self.results).most_common(top))
 
     def generate_init_population(self):
@@ -203,6 +214,11 @@ class Evolution:
             self.population[i] = generate_strategy()
 
     def play_generation(self):
+        if self.random_start:
+            self.robot.set_start_position(
+                start_x=randrange(0, self.width),
+                start_y=randrange(0, self.height),
+            )
         for number, strategy in self.population.items():
             points_per_env = []
             for env in range(self.env_per_strategy):
@@ -214,7 +230,7 @@ class Evolution:
     def generate_new_population(self):
         new_population = {}
         pop_count = 0
-        best = self._get_best(self.keep_best)
+        best = self.get_best(self.keep_best)
         best_keys = list(best.keys())
 
         if self.keep_parents:
@@ -244,13 +260,13 @@ class Evolution:
         for i in range(self.generation_count):
             self.play_generation()
             generations.append(i)
-            results.append(list(self._get_best(1).values())[0])
+            results.append(list(self.get_best(1).values())[0])
             self.generate_new_population()
 
         self.plot_learning_curve(generations, results)
 
     def get_best_strategy(self):
-        return self.population[list(self._get_best(1).keys())[0]]
+        return self.population[list(self.get_best(1).keys())[0]]
 
 
 if __name__ == '__main__':
