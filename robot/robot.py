@@ -36,43 +36,50 @@ class Robot:
             4: self.go_right,
             5: self.take_point
         }
+        self.actions_debug = {
+            1: "go_up",
+            2: "go_down",
+            3: "go_left",
+            4: "go_right",
+            5: "take_point"
+        }
 
     def go_up(self):
-        new_x = self.x - 1
-        if new_x <= self.width:
+        new_y = self.y - 1
+        if new_y <= self.width:
             self.points -= self.wall_penalty
         else:
-            self.x = new_x
+            self.y = new_y
             self.points -= self.step_penalty
 
     def go_down(self):
-        new_x = self.x + 1
-        if new_x >= self.width:
+        new_y = self.y + 1
+        if new_y >= self.width:
+            self.points -= self.wall_penalty
+        else:
+            self.y = new_y
+            self.points -= self.step_penalty
+
+    def go_left(self):
+        new_x = self.x - 1
+        if new_x <= self.height:
             self.points -= self.wall_penalty
         else:
             self.x = new_x
             self.points -= self.step_penalty
 
-    def go_left(self):
-        new_y = self.y - 1
-        if new_y <= self.height:
-            self.points -= self.wall_penalty
-        else:
-            self.y = new_y
-            self.points -= self.step_penalty
-
     def go_right(self):
-        new_y = self.y + 1
-        if new_y >= self.height:
+        new_x = self.x + 1
+        if new_x >= self.height:
             self.points -= self.wall_penalty
         else:
-            self.y = new_y
+            self.x = new_x
             self.points -= self.step_penalty
 
     def take_point(self):
-        if self.grid[self.x][self.y] == 1:
+        if self.grid[self.y][self.x] == 1:
             self.points += self.pickup_reward
-            self.grid[self.x][self.y] = 0
+            self.grid[self.y][self.x] = 0
         else:
             self.points -= self.pickup_empty_penalty
 
@@ -92,34 +99,35 @@ class Robot:
         if self.width <= self.x - 1:
             state.append(-1)
         else:
-            state.append(self.grid[self.x - 1][self.y])
+            state.append(self.grid[self.y][self.x - 1])
 
         if self.height >= self.y + 1:
             state.append(-1)
         else:
-            state.append(self.grid[self.x][self.y + 1])
+            state.append(self.grid[self.y + 1][self.x])
 
         if self.width >= self.x + 1:
             state.append(-1)
         else:
-            state.append(self.grid[self.x + 1][self.y])
+            state.append(self.grid[self.y][self.x + 1])
 
         if self.height <= self.y - 1:
             state.append(-1)
         else:
-            state.append(self.grid[self.x][self.y - 1])
+            state.append(self.grid[self.y - 1][self.x])
 
-        state.append(self.grid[self.x][self.y])
+        state.append(self.grid[self.y][self.x])
 
         return tuple(state)
 
-    def play_strategy(self, strategy: dict, moves_count: int):
+    def play_strategy(self, strategy: dict, moves_count: int, debug=False):
         for _ in range(moves_count):
-                self.actions[
-                    strategy[self.check_state()]
-                ]()
-
-
+            action = strategy[self.check_state()]
+            self.actions[
+                action
+            ]()
+            if debug:
+                print(self.actions_debug[action])
 
     def reset(self):
         self.points = 0

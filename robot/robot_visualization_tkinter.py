@@ -2,7 +2,7 @@ import time
 import tkinter
 from collections import defaultdict
 from doctest import master
-
+import numpy as np
 from robot import Robot, Evolution
 
 
@@ -21,21 +21,36 @@ class GUI:
         self.height = height
         self.canvas = tkinter.Canvas(master, width=self.width, height=self.height)
         self.cell_size = cell_size
-
+        self.start_robot = 0
         self.cells = defaultdict(lambda: (-1, -1), {})
+
+        self.prev_robot_x = -1
+        self.prev_robot_y = -1
 
     def rectangle_coordinates(self, x: int, y: int) -> dict:
         dic = {'x1': x, 'y1': y, 'x2': self.cell_size + x, 'y2': self.cell_size + y}
         return dic
 
-    def draw(self, grid: list, prev_grid: list):  # TODO need to be updated
+    def draw_robot(self, robot_x: int, robot_y: int):
+        robot_coordinate = self.rectangle_coordinates(robot_x, robot_y)
+        return self.canvas.create_rectangle(robot_coordinate["x1"],
+                                            robot_coordinate["y1"],
+                                            robot_coordinate["x2"],
+                                            robot_coordinate["y2"],
+                                            fill='red')
+
+    def draw(self, grid: np.ndarray, prev_grid: np.ndarray, robot_x, robot_y):
         x = 0
         y = 0
+
+        robot_x = robot_x * self.cell_size
+        robot_y = robot_y * self.cell_size
+
         for row, prev_row in zip(grid, prev_grid):
             for cell, prev_cell in zip(row, prev_row):
                 coordinate = self.rectangle_coordinates(x, y)
 
-                if cell != prev_cell:
+                if cell != prev_cell or (x == self.prev_robot_x and y == self.prev_robot_y):
 
                     if self.cells[(x, y)] != (-1, -1):
                         self.canvas.delete(self.cells[(x, y)])
@@ -46,9 +61,15 @@ class GUI:
                                                              coordinate["y2"],
                                                              fill=self.colours[cell])
                     self.cells[(x, y)] = rectangle
+
                 x = coordinate['x2']
             y = coordinate['y2']
             x = 0
+
+        self.draw_robot(robot_x, robot_y)
+        self.prev_robot_x = robot_x
+        self.prev_robot_y = robot_y
+
         self.top.update()
 
     def main_loop(self):
@@ -63,7 +84,7 @@ if __name__ == "__main__":
     height: int = 400
     cell_size: int = 20
 
-    steps: int = 300
+    steps: int = 30  # 300
 
     rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
                      "pickup_reward": 5}
@@ -72,7 +93,7 @@ if __name__ == "__main__":
         "width": width // cell_size,
         "height": height // cell_size,
         "init_pop_count": 200,  # 2000
-        "generation_count": 40,  # 401
+        "generation_count": 10,  # 401
         "env_per_strategy": 5,  # 25
         "keep_parents": True,
         "keep_best": 300,  # 300
@@ -95,19 +116,19 @@ if __name__ == "__main__":
         rewards=rewards,
         weights=[0.3, 0.7])
 
-    grid = robot.grid
-    prev_grid = grid.copy()
+    grid = robot.grid.copy()
+    prev_grid = np.full(grid.shape, -1)
 
     gui = GUI(width, height, cell_size)
     gui.main_loop()
 
-    gui.draw(grid[0], prev_grid)
-    prev_grid = [[value for value in row] for row in grid[0]]
+    gui.draw(grid, prev_grid, robot.start_x, robot.start_y)
+    prev_grid = grid.copy()
 
     for i in range(steps):
-        robot.play_strategy(strategy, steps)
-        grid = robot.grid
-        gui.draw(grid, prev_grid)
+        robot.play_strategy(strategy, 1, debug=True)
+        grid = robot.grid.copy()
+        gui.draw(grid, prev_grid, robot.x, robot.y)
         prev_grid = grid.copy()
         time.sleep(0.3)
 
