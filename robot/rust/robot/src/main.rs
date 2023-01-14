@@ -33,7 +33,6 @@ enum Action {
 
 fn get_random_action() -> Action {
     match rand::thread_rng().gen_range(0..=4) {
-        // rand 0.8
         0 => Action::GoUp,
         1 => Action::GoDown,
         2 => Action::GoRirht,
