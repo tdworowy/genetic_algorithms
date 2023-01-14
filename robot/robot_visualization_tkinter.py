@@ -3,7 +3,8 @@ import tkinter
 from collections import defaultdict
 from doctest import master
 import numpy as np
-from robot import Robot, Evolution
+from python.robot import Robot
+import ast
 
 
 class GUI:
@@ -22,7 +23,7 @@ class GUI:
         self.canvas = tkinter.Canvas(master, width=self.width, height=self.height)
         self.cell_size = cell_size
         self.start_robot = 0
-        self.cells = defaultdict(lambda: (-1, -1), {})
+        self.cells= defaultdict(lambda: (-1, -1), {})
 
         self.prev_robot_x = -1
         self.prev_robot_y = -1
@@ -31,7 +32,7 @@ class GUI:
         dic = {'x1': x, 'y1': y, 'x2': self.cell_size + x, 'y2': self.cell_size + y}
         return dic
 
-    def draw_robot(self, robot_x: int, robot_y: int):
+    def draw_robot(self, robot_x: int, robot_y: int) -> int:
         robot_coordinate = self.rectangle_coordinates(robot_x, robot_y)
         return self.canvas.create_rectangle(robot_coordinate["x1"],
                                             robot_coordinate["y1"],
@@ -45,6 +46,7 @@ class GUI:
 
         robot_x = robot_x * self.cell_size
         robot_y = robot_y * self.cell_size
+        coordinate = {}
 
         for row, prev_row in zip(grid, prev_grid):
             for cell, prev_cell in zip(row, prev_row):
@@ -83,32 +85,11 @@ if __name__ == "__main__":
     width: int = 400
     height: int = 400
     cell_size: int = 20
-
-    steps: int = 150  # 300
-
     rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
                      "pickup_reward": 5}
 
-    evolution_parameters: dict = {
-        "width": width // cell_size,
-        "height": height // cell_size,
-        "init_pop_count": 2500,  # 2000
-        "generation_count": 1500,  # 401
-        "env_per_strategy": 15,  # 25
-        "keep_parents": True,
-        "keep_best": 100,  # 300
-        "moves": steps,
-        "mutation_rate": 0.04,
-        "rewards": rewards,
-        "random_start": True # it makes evolution harder
-    }
-
-    evolution = Evolution(**evolution_parameters)
-    evolution.generate_init_population()
-
-    evolution.evolve()
-    print(evolution.get_best(10))
-    strategy = evolution.get_best_strategy()
+    with open("last_strategy.txt") as strategy_file:
+        strategy = ast.literal_eval(strategy_file.readlines()[0])
 
     robot = Robot(
         start_x=0,
@@ -127,7 +108,7 @@ if __name__ == "__main__":
     gui.draw(grid, prev_grid, robot.start_x, robot.start_y)
     prev_grid = grid.copy()
 
-    for i in range(steps):
+    for i in range(300):
         robot.play_strategy(strategy, 1, debug=False)
         grid = robot.grid.copy()
         gui.draw(grid, prev_grid, robot.x, robot.y)

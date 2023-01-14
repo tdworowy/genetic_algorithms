@@ -15,7 +15,7 @@ def generate_grid(width: int, height: int, weights: list) -> np.ndarray:
 
 
 def save_strategy(strategy: list):
-    with open("last_strategy.txt", 'a') as f:
+    with open("../last_strategy.txt", 'a') as f:
         f.write("\n" + str(strategy))
 
 
@@ -295,7 +295,7 @@ if __name__ == '__main__':
         "keep_parents": True,
         "keep_best": 50,  # 300
         "moves": 200,
-        "mutation_rate": 0.04,
+        "mutation_rate": 0.1,
         "rewards": rewards
     }
 
@@ -304,8 +304,8 @@ if __name__ == '__main__':
     evolution.generate_init_population()
     evolution.evolve()
     best_strategy = evolution.get_best_strategy()
-    # print(best_strategy)
-
+    print(best_strategy)
+    save_strategy(best_strategy)
     robot = Robot(start_x=0,
                   start_y=0,
                   rewards=rewards,
