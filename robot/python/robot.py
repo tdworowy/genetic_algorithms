@@ -159,13 +159,25 @@ def generate_strategy() -> dict:
        4: current
       value:
        action (1 to 5)
-       warning: also generate impossible states
     """
-    return {state: choice([1, 2, 3, 4, 5]) for state in product([-1, 0, 1], repeat=5)}
+    strategy_all_sates = {state: choice([1, 2, 3, 4, 5]) for state in product([-1, 0, 1], repeat=5)}
+    strategy_possible_states = {}
+    for key, value in strategy_all_sates.items():
+        match key:
+            case (-1, _, -1, _, _):
+                pass
+            case (_, _, _, _, -1):
+                pass
+            case (_, -1, _, -1, _):
+                pass
+            case _:
+                strategy_possible_states[key] = value
+
+    return strategy_possible_states
 
 
 class Evolution:
-    STRATEGY_LEN = 243  # it is constant
+    STRATEGY_LEN = 128  # it is constant
 
     def __init__(self, init_pop_count: int, generation_count: int, env_per_strategy: int = 1,
                  keep_parents: bool = True, keep_best: int = 200, moves: int = 200, mutation_rate: float = 0.03,
@@ -273,9 +285,18 @@ class Evolution:
         return self.population[list(self.get_best(1).keys())[0]]
 
 
+def display_strategy(strategy: dict):
+    state = {-1: "Wall", 0: "Empty", 1: "Point"}
+    move = {1: "GoUp", 2: "GoRight", 3: "GoDown", 4: "GoLeft", 5: "TakePoint"}
+    for key, value in strategy.items():
+        state_tuple = tuple([state[s] for s in key])
+        print(f"{state_tuple}: {move[value]}")
+
+
 if __name__ == '__main__':
-    # strategy = generate_strategy()
-    # print(strategy)
+    strategy = generate_strategy()
+    print(len(strategy))
+  # display_strategy(strategy)
     # grid = generate_grid(width=20, height=20, weights=[0.7, 0.3])
     # robot = Robot(start_x=0, start_y=0, grid=grid, rewards=rewards)
     #
@@ -283,33 +304,34 @@ if __name__ == '__main__':
     #
     # print(robot.points)
 
-    rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-                     "pickup_reward": 5}
-
-    evolution_parameters: dict = {
-        "width": 20,
-        "height": 20,
-        "init_pop_count": 500,  # 2000
-        "generation_count": 200,  # 401
-        "env_per_strategy": 5,  # 25
-        "keep_parents": True,
-        "keep_best": 50,  # 300
-        "moves": 200,
-        "mutation_rate": 0.1,
-        "rewards": rewards
-    }
-
-    evolution = Evolution(**evolution_parameters
-                          )
-    evolution.generate_init_population()
-    evolution.evolve()
-    best_strategy = evolution.get_best_strategy()
-    print(best_strategy)
-    save_strategy(best_strategy)
-    robot = Robot(start_x=0,
-                  start_y=0,
-                  rewards=rewards,
-                  width=20,
-                  height=20,
-                  weights=[0.3, 0.7])
-    robot.play_strategy(strategy=best_strategy, moves_count=200)
+    # rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
+    #                  "pickup_reward": 5}
+    #
+    # evolution_parameters: dict = {
+    #     "width": 20,
+    #     "height": 20,
+    #     "init_pop_count": 500,  # 2000
+    #     "generation_count": 200,  # 401
+    #     "env_per_strategy": 5,  # 25
+    #     "keep_parents": True,
+    #     "keep_best": 50,  # 300
+    #     "moves": 200,
+    #     "mutation_rate": 0.1,
+    #     "rewards": rewards
+    # }
+    #
+    # evolution = Evolution(**evolution_parameters
+    #                       )
+    # evolution.generate_init_population()
+    # evolution.evolve()
+    # best_strategy = evolution.get_best_strategy()
+    # print(best_strategy)
+    # save_strategy(best_strategy)
+    # robot = Robot(start_x=0,
+    #               start_y=0,
+    #               rewards=rewards,
+    #               width=20,
+    #               height=20,
+    #               weights=[0.3, 0.7])
+    # robot.play_strategy(strategy=best_strategy, moves_count=200)
+    print([state for state in product([-1, 0, 1], repeat=5)])

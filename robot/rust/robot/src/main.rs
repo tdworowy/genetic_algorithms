@@ -40,7 +40,7 @@ fn get_random_action() -> Action {
         _ => Action::TakePoint,
     }
 }
-// TODO not all possible states are generated
+// TODO not all possible states are generated, should generate 128
 fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
     /*0: above
     1: right
@@ -51,7 +51,10 @@ fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
 
     let possible_states = vec![State::Wall, State::Empty, State::Point];
     let all_states = possible_states.iter().combinations_with_replacement(5);
-
+    
+    // let states = [State::Wall, State::Empty, State::Point].iter().cartesian_product(vec![State::Wall, State::Empty, State::Point; 5]);
+    // let state_list: Vec<Vec<i32>> = states.map(|state| state.collect()).collect();
+ 
     let mut all_possible_states: Vec<Vec<&State>> = Vec::new();
 
     all_states.for_each(|state| match state.as_slice() {
@@ -144,7 +147,7 @@ impl Robot {
         for _ in 0..steps {
             let state = self.get_state();
 
-            println!("State {:?}", state);
+            println!("State {state:?}");
 
             let action = strategy.get(&state);
             match action.unwrap() {
@@ -166,8 +169,11 @@ fn main() {
     let mut robot = Robot::new(grid, Some(0), Some(0));
     let strategy = generate_strategy();
 
-    display_strategy(&strategy);
-    robot.play_strategy(strategy, 100);
+     display_strategy(&strategy);
+     println!("{}",strategy.len());
+   
+   // robot.play_strategy(strategy, 100);
 
-    println!("Points: {}", robot.points);
+    // println!("Points: {}", robot.points);
+
 }
