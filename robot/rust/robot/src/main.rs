@@ -1,9 +1,83 @@
 use std::collections::HashMap;
-
-use itertools::Itertools;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
+
+//from https://stackoverflow.com/questions/71420176/permutations-with-replacement-in-rust
+pub struct PermutationsReplacementIter<I> {
+    items: Vec<I>,
+    permutation: Vec<usize>,
+    group_len: usize,
+    finished: bool,
+}
+
+impl<I: Copy> PermutationsReplacementIter<I> {
+    fn increment_permutation(&mut self) -> bool {
+        let mut idx = 0;
+
+        loop {
+            if idx >= self.permutation.len() {
+                return true;
+            }
+
+            self.permutation[idx] += 1;
+
+            if self.permutation[idx] >= self.items.len() {
+                self.permutation[idx] = 0;
+                idx += 1;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    fn build_vec(&self) -> Vec<I> {
+        let mut vec = Vec::with_capacity(self.group_len);
+
+        for idx in &self.permutation {
+            vec.push(self.items[*idx]);
+        }
+
+        vec
+    }
+}
+
+impl<I: Copy> Iterator for PermutationsReplacementIter<I> {
+    type Item = Vec<I>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+
+        let item = self.build_vec();
+
+        if self.increment_permutation() {
+            self.finished = true;
+        }
+
+        Some(item)
+    }
+}
+
+pub trait ToPermutationsWithReplacement {
+    type Iter;
+    fn permutations_with_replacement(self, group_len: usize) -> Self::Iter;
+}
+
+impl<I: Iterator> ToPermutationsWithReplacement for I {
+    type Iter = PermutationsReplacementIter<<I as Iterator>::Item>;
+
+    fn permutations_with_replacement(self, group_len: usize) -> Self::Iter {
+        let items = self.collect::<Vec<_>>();
+        PermutationsReplacementIter {
+            permutation: vec![0; group_len],
+            group_len,
+            finished: group_len == 0 || items.len() == 0,
+            items,
+        }
+    }
+}
 
 fn generate_gird_random(width: usize, height: usize, weights: Vec<usize>) -> Vec<Vec<usize>> {
     let mut rng = rand::thread_rng();
@@ -40,7 +114,7 @@ fn get_random_action() -> Action {
         _ => Action::TakePoint,
     }
 }
-// TODO not all possible states are generated, should generate 128
+
 fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
     /*0: above
     1: right
@@ -50,11 +124,8 @@ fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
     let mut strategy: HashMap<(State, State, State, State, State), Action> = HashMap::new();
 
     let possible_states = vec![State::Wall, State::Empty, State::Point];
-    let all_states = possible_states.iter().combinations_with_replacement(5);
-    
-    // let states = [State::Wall, State::Empty, State::Point].iter().cartesian_product(vec![State::Wall, State::Empty, State::Point; 5]);
-    // let state_list: Vec<Vec<i32>> = states.map(|state| state.collect()).collect();
- 
+    let all_states = possible_states.iter().permutations_with_replacement(5);
+
     let mut all_possible_states: Vec<Vec<&State>> = Vec::new();
 
     all_states.for_each(|state| match state.as_slice() {
@@ -72,6 +143,7 @@ fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
     });
     strategy
 }
+
 fn display_strategy(strategy: &HashMap<(State, State, State, State, State), Action>) {
     for (k, v) in strategy {
         println!("{:?} {:?}", k, v)
@@ -81,22 +153,32 @@ fn display_strategy(strategy: &HashMap<(State, State, State, State, State), Acti
 struct Robot {
     points: isize,
     grid: Vec<Vec<usize>>,
+    width: usize,
+    height: usize,
     x: usize,
     y: usize,
 }
 
 impl Robot {
-    fn new(grid: Vec<Vec<usize>>, x: Option<usize>, y: Option<usize>) -> Robot {
+    fn new(
+        grid: Vec<Vec<usize>>,
+        width: usize,
+        height: usize,
+        x: Option<usize>,
+        y: Option<usize>,
+    ) -> Robot {
         Robot {
             points: 0,
             grid,
+            width,
+            height,
             x: x.unwrap_or(0),
             y: y.unwrap_or(0),
         }
     }
 
     fn get_state(&self) -> (State, State, State, State, State) {
-        let up: State = if self.y + 1 > self.grid.len() {
+        let up: State = if self.y + 1 > self.height {
             State::Wall
         } else {
             match self.grid[self.y + 1][self.x] {
@@ -114,7 +196,7 @@ impl Robot {
             }
         };
 
-        let right: State = if self.x + 1 > self.grid[0].len() {
+        let right: State = if self.x + 1 > self.width {
             State::Wall
         } else {
             match self.grid[self.y + 1][self.x] {
@@ -147,10 +229,9 @@ impl Robot {
         for _ in 0..steps {
             let state = self.get_state();
 
-            println!("State {state:?}");
-
             let action = strategy.get(&state);
             match action.unwrap() {
+                // TODO do go about/bewlow grid limits
                 Action::GoUp => self.y += 1,
                 Action::GoDown => self.y -= 1,
                 Action::GoLeft => self.x -= 1,
@@ -165,15 +246,13 @@ impl Robot {
 }
 
 fn main() {
-    let grid = generate_gird_random(500, 500, vec![3, 7]);
-    let mut robot = Robot::new(grid, Some(0), Some(0));
+    let width: usize = 500;
+    let height: usize = 500;
+    let grid = generate_gird_random(width, height, vec![3, 7]);
+    let mut robot = Robot::new(grid, width, height, Some(0), Some(0));
     let strategy = generate_strategy();
 
-     display_strategy(&strategy);
-     println!("{}",strategy.len());
-   
-   // robot.play_strategy(strategy, 100);
-
-    // println!("Points: {}", robot.points);
-
+    // display_strategy(&strategy);
+    robot.play_strategy(strategy, 100);
+    println!("Points: {}", robot.points);
 }
