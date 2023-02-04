@@ -231,7 +231,8 @@ impl Robot {
 
             let action = strategy.get(&state);
             match action.unwrap() {
-                // TODO do go about/bewlow grid limits
+                // TODO don't go about/bewlow grid limits
+                // TODO handle different ways to count points (eq penalties for hitting wals, moves, picking on empty space)
                 Action::GoUp => self.y += 1,
                 Action::GoDown => self.y -= 1,
                 Action::GoLeft => self.x -= 1,
