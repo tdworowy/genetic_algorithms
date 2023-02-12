@@ -165,6 +165,17 @@ struct Penalties {
     empty_pick_up: isize,
 }
 
+struct Specimen {
+    strategy: HashMap<(State, State, State, State, State), Action>,
+    points: isize,
+}
+
+struct Evolution {
+    grid: Vec<Vec<usize>>,
+    population: Vec<Specimen>,
+    penalties: Penalties,
+}
+
 impl Robot {
     fn new(
         grid: Vec<Vec<usize>>,
@@ -279,6 +290,29 @@ impl Robot {
                     }
                 }
             }
+        }
+    }
+}
+
+fn generate_population(population_size: usize) -> Vec<Specimen> {
+    (0..population_size)
+        .map(|_| Specimen {
+            strategy: generate_strategy(),
+            points: 0,
+        })
+        .collect()
+}
+
+impl Evolution {
+    fn new(width: usize, height: usize, population_size: usize) -> Evolution {
+        Evolution {
+            grid: generate_gird_random(width, height, vec![3, 7]),
+            population: generate_population(population_size),
+            penalties: Penalties {
+                move_: 1,
+                wall: 5,
+                empty_pick_up: 3,
+            },
         }
     }
 }
