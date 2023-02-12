@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
+use std::collections::HashMap;
 
 //from https://stackoverflow.com/questions/71420176/permutations-with-replacement-in-rust
 pub struct PermutationsReplacementIter<I> {
@@ -159,6 +159,12 @@ struct Robot {
     y: usize,
 }
 
+struct Penalties {
+    move_: isize,
+    wall: isize,
+    empty_pick_up: isize,
+}
+
 impl Robot {
     fn new(
         grid: Vec<Vec<usize>>,
@@ -225,21 +231,52 @@ impl Robot {
         &mut self,
         strategy: HashMap<(State, State, State, State, State), Action>,
         steps: usize,
+        penalties: Penalties,
     ) {
         for _ in 0..steps {
             let state = self.get_state();
 
             let action = strategy.get(&state);
             match action.unwrap() {
-                // TODO don't go about/bewlow grid limits
-                // TODO handle different ways to count points (eq penalties for hitting wals, moves, picking on empty space)
-                Action::GoUp => self.y += 1,
-                Action::GoDown => self.y -= 1,
-                Action::GoLeft => self.x -= 1,
-                Action::GoRight => self.x += 1,
+                Action::GoUp => {
+                    if self.y < self.height {
+                        self.y += 1;
+                        self.points -= penalties.move_
+                    } else {
+                        self.points -= penalties.wall;
+                    }
+                }
+                Action::GoDown => {
+                    if self.y > 0 {
+                        self.y -= 1;
+                        self.points -= penalties.move_;
+                    } else {
+                        self.points -= penalties.wall;
+                    }
+                }
+                Action::GoLeft => {
+                    if self.x > 0 {
+                        self.x -= 1;
+                        self.points -= penalties.move_;
+                    } else {
+                        self.points -= penalties.wall;
+                    }
+                }
+                Action::GoRight => {
+                    if self.x < self.width {
+                        self.x += 1;
+                        self.points -= penalties.move_;
+                    } else {
+                        self.points -= penalties.wall;
+                    }
+                }
                 Action::TakePoint => {
-                    self.points += 1;
-                    self.grid[self.x][self.y] = 0;
+                    if self.grid[self.x][self.y] != 0 {
+                        self.points += 1;
+                        self.grid[self.x][self.y] = 0;
+                    } else {
+                        self.points -= penalties.empty_pick_up;
+                    }
                 }
             }
         }
@@ -250,10 +287,19 @@ fn main() {
     let width: usize = 500;
     let height: usize = 500;
     let grid = generate_gird_random(width, height, vec![3, 7]);
+
     let mut robot = Robot::new(grid, width, height, Some(0), Some(0));
     let strategy = generate_strategy();
 
     // display_strategy(&strategy);
-    robot.play_strategy(strategy, 100);
+    robot.play_strategy(
+        strategy,
+        100,
+        Penalties {
+            move_: 1,
+            wall: 5,
+            empty_pick_up: 3,
+        },
+    );
     println!("Points: {}", robot.points);
 }
