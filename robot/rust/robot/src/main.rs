@@ -1,6 +1,7 @@
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
+use std::cmp::Reverse;
 use std::collections::HashMap;
 
 //from https://stackoverflow.com/questions/71420176/permutations-with-replacement-in-rust
@@ -96,7 +97,7 @@ enum State {
     Point,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Action {
     GoUp,
     GoDown,
@@ -165,14 +166,18 @@ struct Penalties {
     empty_pick_up: isize,
 }
 
+#[derive(Debug, Clone)]
 struct Specimen {
     strategy: HashMap<(State, State, State, State, State), Action>,
     points: isize,
 }
 
 struct Evolution {
+    width: usize,
+    height: usize,
     grid: Vec<Vec<usize>>,
     population: Vec<Specimen>,
+    steps: usize,
     penalties: Penalties,
 }
 
@@ -240,9 +245,9 @@ impl Robot {
 
     fn play_strategy(
         &mut self,
-        strategy: HashMap<(State, State, State, State, State), Action>,
+        strategy: &HashMap<(State, State, State, State, State), Action>,
         steps: usize,
-        penalties: Penalties,
+        penalties: &Penalties,
     ) {
         for _ in 0..steps {
             let state = self.get_state();
@@ -306,6 +311,8 @@ fn generate_population(population_size: usize) -> Vec<Specimen> {
 impl Evolution {
     fn new(width: usize, height: usize, population_size: usize) -> Evolution {
         Evolution {
+            width,
+            height,
             grid: generate_gird_random(width, height, vec![3, 7]),
             population: generate_population(population_size),
             penalties: Penalties {
@@ -313,27 +320,67 @@ impl Evolution {
                 wall: 5,
                 empty_pick_up: 3,
             },
+            steps: 300,
         }
     }
+
+    fn get_n_best(&self, best: usize) -> Vec<Specimen> {
+        get_n_best(self.population.clone(), best)
+    }
+
+    fn play_population(&mut self) {
+        let mut new_population: Vec<Specimen> = Vec::new();
+        for spiceman in &self.population {
+            let mut robot =
+                Robot::new(self.grid.clone(), self.width, self.height, Some(0), Some(0));
+            robot.play_strategy(&spiceman.strategy, self.steps, &self.penalties);
+
+            new_population.push(Specimen {
+                strategy: spiceman.strategy.clone(),
+                points: robot.points,
+            });
+        }
+        self.population = new_population;
+    }
+}
+
+fn get_n_best(mut population: Vec<Specimen>, best: usize) -> Vec<Specimen> {
+    population.sort_by_key(|s| Reverse(s.points));
+    population[0..best].to_vec()
+}
+
+#[test]
+fn test_get_n_best() {
+    let population = vec![
+        Specimen {
+            strategy: generate_strategy(),
+            points: 10,
+        },
+        Specimen {
+            strategy: generate_strategy(),
+            points: 20,
+        },
+        Specimen {
+            strategy: generate_strategy(),
+            points: 8,
+        },
+    ];
+
+    let best = get_n_best(population, 2);
+    assert!(best[0].points == 20);
+    assert!(best[1].points == 10);
 }
 
 fn main() {
     let width: usize = 500;
     let height: usize = 500;
-    let grid = generate_gird_random(width, height, vec![3, 7]);
+    let mut evolution = Evolution::new(width, height, 2000);
+    evolution.play_population();
 
-    let mut robot = Robot::new(grid, width, height, Some(0), Some(0));
-    let strategy = generate_strategy();
-
-    // display_strategy(&strategy);
-    robot.play_strategy(
-        strategy,
-        100,
-        Penalties {
-            move_: 1,
-            wall: 5,
-            empty_pick_up: 3,
-        },
-    );
-    println!("Points: {}", robot.points);
+    let top = evolution.get_n_best(5);
+    // TODO why all top speciment have same number of points ? 
+    for s in top {
+        println!("{:?}", s);
+        println!("##########################",);
+    }
 }
