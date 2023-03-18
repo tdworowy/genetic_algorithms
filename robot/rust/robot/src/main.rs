@@ -315,12 +315,12 @@ impl Evolution {
             height,
             grid: generate_gird_random(width, height, vec![3, 7]),
             population: generate_population(population_size),
+            steps: 300,
             penalties: Penalties {
                 move_: 1,
                 wall: 5,
                 empty_pick_up: 3,
             },
-            steps: 300,
         }
     }
 
@@ -378,7 +378,7 @@ fn main() {
     evolution.play_population();
 
     let top = evolution.get_n_best(5);
-    // TODO why all top speciment have same number of points ? 
+    // TODO why all top speciment have same number of points ?
     for s in top {
         println!("{:?}", s);
         println!("##########################",);
