@@ -2,7 +2,7 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
 use std::cmp::Reverse;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 //from https://stackoverflow.com/questions/71420176/permutations-with-replacement-in-rust
 pub struct PermutationsReplacementIter<I> {
@@ -90,7 +90,7 @@ fn generate_gird_random(width: usize, height: usize, weights: Vec<usize>) -> Vec
     grid
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 enum State {
     Wall,
     Empty,
@@ -116,13 +116,13 @@ fn get_random_action() -> Action {
     }
 }
 
-fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
+fn generate_strategy() -> BTreeMap<(State, State, State, State, State), Action> {
     /*0: above
     1: right
     2: below
     3: left
     4: current*/
-    let mut strategy: HashMap<(State, State, State, State, State), Action> = HashMap::new();
+    let mut strategy: BTreeMap<(State, State, State, State, State), Action> = BTreeMap::new();
 
     let possible_states = vec![State::Wall, State::Empty, State::Point];
     let all_states = possible_states.iter().permutations_with_replacement(5);
@@ -145,7 +145,7 @@ fn generate_strategy() -> HashMap<(State, State, State, State, State), Action> {
     strategy
 }
 
-fn display_strategy(strategy: &HashMap<(State, State, State, State, State), Action>) {
+fn display_strategy(strategy: &BTreeMap<(State, State, State, State, State), Action>) {
     for (k, v) in strategy {
         println!("{:?} {:?}", k, v)
     }
@@ -168,7 +168,7 @@ struct Penalties {
 
 #[derive(Debug, Clone)]
 struct Specimen {
-    strategy: HashMap<(State, State, State, State, State), Action>,
+    strategy: BTreeMap<(State, State, State, State, State), Action>,
     points: isize,
 }
 
@@ -245,7 +245,7 @@ impl Robot {
 
     fn play_strategy(
         &mut self,
-        strategy: &HashMap<(State, State, State, State, State), Action>,
+        strategy: &BTreeMap<(State, State, State, State, State), Action>,
         steps: usize,
         penalties: &Penalties,
     ) {
@@ -328,6 +328,10 @@ impl Evolution {
         get_n_best(self.population.clone(), best)
     }
 
+    fn cross_spicemans(&self, best: usize) -> Vec<Specimen> {
+        cross_spicemans(self.get_n_best(best))
+    }
+
     fn play_population(&mut self) {
         let mut new_population: Vec<Specimen> = Vec::new();
         for spiceman in &self.population {
@@ -347,6 +351,47 @@ impl Evolution {
 fn get_n_best(mut population: Vec<Specimen>, best: usize) -> Vec<Specimen> {
     population.sort_by_key(|s| Reverse(s.points));
     population[0..best].to_vec()
+}
+
+fn cross_spicemans(population: Vec<Specimen>) -> Vec<Specimen> {
+    let mut new_population: Vec<Specimen> = Vec::new();
+    for i in (0..population.len()).step_by(2) {
+        let strategy_len = population[i].strategy.len();
+        let mut chunk1 = get_strategy_chunk(&population[i].strategy, 0, strategy_len / 2);
+        let chunk2 =
+            get_strategy_chunk(&population[i + 1].strategy, strategy_len / 2, strategy_len);
+
+        chunk1.extend(chunk2);
+
+        new_population.push(Specimen {
+            strategy: chunk1,
+            points: 0,
+        })
+    }
+    new_population
+}
+
+fn get_strategy_chunk(
+    strategy: &BTreeMap<(State, State, State, State, State), Action>,
+    from: usize,
+    to: usize,
+) -> BTreeMap<(State, State, State, State, State), Action> {
+    strategy
+        .iter()
+        .skip(from)
+        .take(to - from)
+        .map(|(&k, &v)| (k, v))
+        .collect()
+}
+
+#[test]
+fn test_get_strategy_chunk() {
+    let strategy = generate_strategy();
+    let chunk1 = get_strategy_chunk(&strategy, 1, 10);
+    let chunk2 = get_strategy_chunk(&strategy, 0, 1);
+
+    assert!(chunk1.len() == 9);
+    assert!(chunk2.len() == 1);
 }
 
 #[test]
@@ -377,10 +422,12 @@ fn main() {
     let mut evolution = Evolution::new(width, height, 2000);
     evolution.play_population();
 
-    let top = evolution.get_n_best(5);
-    // TODO why all top speciment have same number of points ?
-    for s in top {
-        println!("{:?}", s);
-        println!("##########################",);
-    }
+    // (?) issue best need to be even 
+    let next_generation = evolution.cross_spicemans(6);
+
+    // println!("##########################",);
+    // for s in top {
+    //     println!("{:?}", s.points);
+    //     println!("##########################",);
+    // }
 }
