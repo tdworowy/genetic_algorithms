@@ -422,7 +422,7 @@ fn main() {
     let mut evolution = Evolution::new(width, height, 2000);
     evolution.play_population();
 
-    // (?) issue best need to be even 
+    // (?) issue best need to be even
     let next_generation = evolution.cross_spicemans(6);
 
     // println!("##########################",);
