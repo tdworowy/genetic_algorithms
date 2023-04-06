@@ -175,10 +175,13 @@ struct Specimen {
 struct Evolution {
     width: usize,
     height: usize,
+    weights: Vec<usize>,
     grid: Vec<Vec<usize>>,
     population: Vec<Specimen>,
     steps: usize,
     penalties: Penalties,
+    generations: usize,
+    population_size: usize,
 }
 
 impl Robot {
@@ -200,7 +203,7 @@ impl Robot {
     }
 
     fn get_state(&self) -> (State, State, State, State, State) {
-        let up: State = if self.y + 1 > self.height {
+        let up: State = if self.y + 1 >= self.height {
             State::Wall
         } else {
             match self.grid[self.y + 1][self.x] {
@@ -209,28 +212,28 @@ impl Robot {
             }
         };
 
-        let down: State = if self.y as isize - 1 < 0 {
+        let down: State = if self.y as isize - 1 <= 0 {
             State::Wall
         } else {
-            match self.grid[self.y + 1][self.x] {
+            match self.grid[self.y - 1][self.x] {
                 1 => State::Point,
                 _ => State::Empty,
             }
         };
 
-        let right: State = if self.x + 1 > self.width {
+        let right: State = if self.x + 1 >= self.width {
             State::Wall
         } else {
-            match self.grid[self.y + 1][self.x] {
+            match self.grid[self.y][self.x + 1] {
                 1 => State::Point,
                 _ => State::Empty,
             }
         };
 
-        let left: State = if self.x as isize - 1 < 0 {
+        let left: State = if self.x as isize - 1 <= 0 {
             State::Wall
         } else {
-            match self.grid[self.y + 1][self.x] {
+            match self.grid[self.y][self.x - 1] {
                 1 => State::Point,
                 _ => State::Empty,
             }
@@ -288,7 +291,7 @@ impl Robot {
                 }
                 Action::TakePoint => {
                     if self.grid[self.x][self.y] != 0 {
-                        self.points += 1;
+                        self.points += 5;
                         self.grid[self.x][self.y] = 0;
                     } else {
                         self.points -= penalties.empty_pick_up;
@@ -309,11 +312,12 @@ fn generate_population(population_size: usize) -> Vec<Specimen> {
 }
 
 impl Evolution {
-    fn new(width: usize, height: usize, population_size: usize) -> Evolution {
+    fn new(width: usize, height: usize, weights: Vec<usize>, population_size: usize) -> Evolution {
         Evolution {
             width,
             height,
-            grid: generate_gird_random(width, height, vec![3, 7]),
+            weights: weights.clone(),
+            grid: generate_gird_random(width, height, weights),
             population: generate_population(population_size),
             steps: 300,
             penalties: Penalties {
@@ -321,6 +325,8 @@ impl Evolution {
                 wall: 5,
                 empty_pick_up: 3,
             },
+            generations: 800,
+            population_size,
         }
     }
 
@@ -328,8 +334,8 @@ impl Evolution {
         get_n_best(self.population.clone(), best)
     }
 
-    fn cross_spicemans(&self, best: usize) -> Vec<Specimen> {
-        cross_spicemans(self.get_n_best(best))
+    fn cross_spicemans(&self, population_to_corss: Vec<Specimen>) -> Vec<Specimen> {
+        cross_spicemans(population_to_corss)
     }
 
     fn play_population(&mut self) {
@@ -345,6 +351,23 @@ impl Evolution {
             });
         }
         self.population = new_population;
+    }
+
+    fn evolv(&mut self) {
+        let n_best: usize = 100;
+        for i in 0..self.generations {
+            &self.play_population();
+
+            let best = &self.get_n_best(n_best);
+            let new_generation = &self.cross_spicemans(best.clone());
+            let mut new_specimens = generate_population(&self.population_size - n_best * 3);
+
+            new_specimens.append(&mut best.clone());
+            new_specimens.append(&mut new_generation.clone());
+
+            self.population = new_specimens;
+            self.grid = generate_gird_random(self.width, self.height, self.weights.clone());
+        }
     }
 }
 
@@ -417,17 +440,17 @@ fn test_get_n_best() {
 }
 
 fn main() {
-    let width: usize = 500;
-    let height: usize = 500;
-    let mut evolution = Evolution::new(width, height, 2000);
+    let width: usize = 20;
+    let height: usize = 20;
+    let weights = vec![3, 7];
+    let mut evolution = Evolution::new(width, height, weights, 4500);
+    evolution.evolv();
+
     evolution.play_population();
 
-    // (?) issue best need to be even
-    let next_generation = evolution.cross_spicemans(6);
+    let n_bests = evolution.get_n_best(1);
 
-    // println!("##########################",);
-    // for s in top {
-    //     println!("{:?}", s.points);
-    //     println!("##########################",);
-    // }
+    for specimen in n_bests {
+        println!("{:?}", specimen);
+    }
 }

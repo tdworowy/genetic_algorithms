@@ -82,9 +82,9 @@ class GUI:
 
 
 if __name__ == "__main__":
-    width: int = 400
-    height: int = 400
     cell_size: int = 20
+    width: int = 20 * 20
+    height: int = 20 * 20
     rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
                      "pickup_reward": 5}
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         grid = robot.grid.copy()
         gui.draw(grid, prev_grid, robot.x, robot.y)
         prev_grid = grid.copy()
-        time.sleep(0.3)
+        time.sleep(0.1)
 
     print(f"Robot points: {robot.points}")
     while 1:
