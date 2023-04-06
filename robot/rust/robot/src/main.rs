@@ -258,7 +258,7 @@ impl Robot {
             let action = strategy.get(&state);
             match action.unwrap() {
                 Action::GoUp => {
-                    if self.y < self.height {
+                    if self.y + 1 < self.height {
                         self.y += 1;
                         self.points -= penalties.move_
                     } else {
@@ -282,7 +282,7 @@ impl Robot {
                     }
                 }
                 Action::GoRight => {
-                    if self.x < self.width {
+                    if self.x + 1 < self.width {
                         self.x += 1;
                         self.points -= penalties.move_;
                     } else {
