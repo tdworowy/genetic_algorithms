@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 itertools ="0.10.5"
 rand ="0.8.5"
+crossbeam = "0.8"
+crossbeam-channel = "0.5.8"

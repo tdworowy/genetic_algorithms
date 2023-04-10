@@ -3,6 +3,9 @@ use rand::prelude::*;
 use rand::Rng;
 use std::cmp::Reverse;
 use std::collections::BTreeMap;
+use std::thread;
+
+use std::sync::{Arc, Mutex};
 
 //from https://stackoverflow.com/questions/71420176/permutations-with-replacement-in-rust
 pub struct PermutationsReplacementIter<I> {
@@ -74,13 +77,13 @@ impl<I: Iterator> ToPermutationsWithReplacement for I {
         PermutationsReplacementIter {
             permutation: vec![0; group_len],
             group_len,
-            finished: group_len == 0 || items.len() == 0,
+            finished: group_len == 0 || items.is_empty(),
             items,
         }
     }
 }
 
-fn generate_gird_random(width: usize, height: usize, weights: Vec<usize>) -> Vec<Vec<usize>> {
+fn generate_gird_random(width: usize, height: usize, weights: [usize; 2]) -> Vec<Vec<usize>> {
     let mut rng = rand::thread_rng();
     let dist = WeightedIndex::new(&weights).unwrap();
 
@@ -160,6 +163,7 @@ struct Robot {
     y: usize,
 }
 
+#[derive(Debug, Clone, Copy)]
 struct Penalties {
     move_: isize,
     wall: isize,
@@ -175,7 +179,7 @@ struct Specimen {
 struct Evolution {
     width: usize,
     height: usize,
-    weights: Vec<usize>,
+    weights: [usize; 2],
     grid: Vec<Vec<usize>>,
     population: Vec<Specimen>,
     steps: usize,
@@ -312,11 +316,11 @@ fn generate_population(population_size: usize) -> Vec<Specimen> {
 }
 
 impl Evolution {
-    fn new(width: usize, height: usize, weights: Vec<usize>, population_size: usize) -> Evolution {
+    fn new(width: usize, height: usize, weights: [usize; 2], population_size: usize) -> Evolution {
         Evolution {
             width,
             height,
-            weights: weights.clone(),
+            weights,
             grid: generate_gird_random(width, height, weights),
             population: generate_population(population_size),
             steps: 300,
@@ -338,6 +342,58 @@ impl Evolution {
         cross_spicemans(population_to_corss)
     }
 
+    fn play_population_multi_thread(&mut self) {
+        let num_threads = 12;
+        let chunk_size = (self.population.len() + num_threads - 1) / num_threads;
+
+        let population_arc = Arc::new(Mutex::new(self.population.clone()));
+        let (tx, rx) = crossbeam_channel::bounded(num_threads);
+
+        let width = self.width;
+        let height = self.height;
+        let steps = self.steps;
+        let penalties = self.penalties;
+        let weights = self.weights;
+
+        for i in 0..num_threads {
+            let population_arc = population_arc.clone();
+            let tx = tx.clone();
+
+            thread::spawn(move || {
+                let mut new_population = Vec::new();
+
+                let start = i * chunk_size;
+                let end = std::cmp::min(start + chunk_size, population_arc.lock().unwrap().len());
+
+                for spiceman in &population_arc.lock().unwrap()[start..end] {
+                    let mut robot = Robot::new(
+                        generate_gird_random(width, height, weights),
+                        width,
+                        height,
+                        Some(0),
+                        Some(0),
+                    );
+                    robot.play_strategy(&spiceman.strategy, steps, &penalties);
+
+                    new_population.push(Specimen {
+                        strategy: spiceman.strategy.clone(),
+                        points: robot.points,
+                    });
+                }
+
+                tx.send(new_population).unwrap();
+            });
+        }
+
+        drop(tx);
+
+        let mut new_population = Vec::with_capacity(self.population.len());
+        for chunk_population in rx {
+            new_population.extend(chunk_population);
+        }
+        self.population = new_population;
+    }
+
     fn play_population(&mut self) {
         let mut new_population: Vec<Specimen> = Vec::new();
         for spiceman in &self.population {
@@ -355,18 +411,17 @@ impl Evolution {
 
     fn evolv(&mut self) {
         let n_best: usize = 100;
-        for i in 0..self.generations {
-            &self.play_population();
+        for _i in 0..self.generations {
+            self.play_population_multi_thread();
 
             let best = &self.get_n_best(n_best);
             let new_generation = &self.cross_spicemans(best.clone());
-            let mut new_specimens = generate_population(&self.population_size - n_best * 3);
+            let mut new_specimens = generate_population(self.population_size - n_best * 3);
 
             new_specimens.append(&mut best.clone());
             new_specimens.append(&mut new_generation.clone());
 
             self.population = new_specimens;
-            self.grid = generate_gird_random(self.width, self.height, self.weights.clone());
         }
     }
 }
@@ -442,11 +497,11 @@ fn test_get_n_best() {
 fn main() {
     let width: usize = 20;
     let height: usize = 20;
-    let weights = vec![3, 7];
+    let weights = [3, 7];
     let mut evolution = Evolution::new(width, height, weights, 4500);
     evolution.evolv();
 
-    evolution.play_population();
+    evolution.play_population_multi_thread();
 
     let n_bests = evolution.get_n_best(1);
 
