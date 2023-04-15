@@ -1,6 +1,3 @@
-import time
-
-import numpy as np
 from python.robot import Robot, Evolution, save_strategy
 
 if __name__ == "__main__":

@@ -323,13 +323,13 @@ impl Evolution {
             weights,
             grid: generate_gird_random(width, height, weights),
             population: generate_population(population_size),
-            steps: 300,
+            steps: 200,
             penalties: Penalties {
-                move_: 1,
+                move_: 0,
                 wall: 5,
                 empty_pick_up: 3,
             },
-            generations: 800,
+            generations: 3000,
             population_size,
         }
     }
@@ -498,7 +498,7 @@ fn main() {
     let width: usize = 20;
     let height: usize = 20;
     let weights = [3, 7];
-    let mut evolution = Evolution::new(width, height, weights, 4500);
+    let mut evolution = Evolution::new(width, height, weights, 5000);
     evolution.evolv();
 
     evolution.play_population_multi_thread();
