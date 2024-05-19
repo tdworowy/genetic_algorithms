@@ -1,0 +1,1 @@
+A simple genetic algorithm implementation inspired by example from book [Complexity: A Guided Tour](https://www.amazon.com/Complexity-Guided-Tour-Melanie-Mitchell-ebook/dp/B002SAUBWC/ref=sr_1_3?crid=2907MIC5SUS5G&keywords=complexity&qid=1707856592&sprefix=complexity%2Caps%2C291&sr=8-3) by Melanie Mitchell.
