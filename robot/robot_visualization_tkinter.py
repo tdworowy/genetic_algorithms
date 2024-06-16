@@ -14,31 +14,30 @@ class GUI:
         self.top_frame = tkinter.Frame()
         self.button_frame = tkinter.Frame()
 
-        self.colours = {
-            0: "blue",
-            1: "green"
-        }
+        self.colours = {0: "blue", 1: "green"}
         self.width = width
         self.height = height
         self.canvas = tkinter.Canvas(master, width=self.width, height=self.height)
         self.cell_size = cell_size
         self.start_robot = 0
-        self.cells= defaultdict(lambda: (-1, -1), {})
+        self.cells = defaultdict(lambda: (-1, -1), {})
 
         self.prev_robot_x = -1
         self.prev_robot_y = -1
 
     def rectangle_coordinates(self, x: int, y: int) -> dict:
-        dic = {'x1': x, 'y1': y, 'x2': self.cell_size + x, 'y2': self.cell_size + y}
+        dic = {"x1": x, "y1": y, "x2": self.cell_size + x, "y2": self.cell_size + y}
         return dic
 
     def draw_robot(self, robot_x: int, robot_y: int) -> int:
         robot_coordinate = self.rectangle_coordinates(robot_x, robot_y)
-        return self.canvas.create_rectangle(robot_coordinate["x1"],
-                                            robot_coordinate["y1"],
-                                            robot_coordinate["x2"],
-                                            robot_coordinate["y2"],
-                                            fill='red')
+        return self.canvas.create_rectangle(
+            robot_coordinate["x1"],
+            robot_coordinate["y1"],
+            robot_coordinate["x2"],
+            robot_coordinate["y2"],
+            fill="red",
+        )
 
     def draw(self, grid: np.ndarray, prev_grid: np.ndarray, robot_x, robot_y):
         x = 0
@@ -52,20 +51,24 @@ class GUI:
             for cell, prev_cell in zip(row, prev_row):
                 coordinate = self.rectangle_coordinates(x, y)
 
-                if cell != prev_cell or (x == self.prev_robot_x and y == self.prev_robot_y):
+                if cell != prev_cell or (
+                    x == self.prev_robot_x and y == self.prev_robot_y
+                ):
 
                     if self.cells[(x, y)] != (-1, -1):
                         self.canvas.delete(self.cells[(x, y)])
 
-                    rectangle = self.canvas.create_rectangle(coordinate["x1"],
-                                                             coordinate["y1"],
-                                                             coordinate["x2"],
-                                                             coordinate["y2"],
-                                                             fill=self.colours[cell])
+                    rectangle = self.canvas.create_rectangle(
+                        coordinate["x1"],
+                        coordinate["y1"],
+                        coordinate["x2"],
+                        coordinate["y2"],
+                        fill=self.colours[cell],
+                    )
                     self.cells[(x, y)] = rectangle
 
-                x = coordinate['x2']
-            y = coordinate['y2']
+                x = coordinate["x2"]
+            y = coordinate["y2"]
             x = 0
 
         self.draw_robot(robot_x, robot_y)
@@ -85,8 +88,12 @@ if __name__ == "__main__":
     cell_size: int = 20
     width: int = 20 * 20
     height: int = 20 * 20
-    rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-                     "pickup_reward": 5}
+    rewards: dict = {
+        "wall_penalty": 10,
+        "pickup_empty_penalty": 5,
+        "step_penalty": 1,
+        "pickup_reward": 5,
+    }
 
     with open("last_strategy.txt") as strategy_file:
         strategy = ast.literal_eval(strategy_file.readlines()[0])
@@ -97,7 +104,8 @@ if __name__ == "__main__":
         width=width // cell_size,
         height=height // cell_size,
         rewards=rewards,
-        weights=[0.7, 0.3])
+        weights=[0.7, 0.3],
+    )
 
     grid = robot.grid.copy()
     prev_grid = np.full(grid.shape, -1)

@@ -12,12 +12,16 @@ from random import choices, randrange
 from matplotlib import pyplot as plt
 
 
-states = ['empty', "point", "wall"]
+states = ["empty", "point", "wall"]
 actions = ["go_up", "go_down", "go_left", "go_right", "take_point"]
 
 
-def generate_grid(width: int, height: int, states: list, weights: list, random_start: bool = True) -> tuple:
-    grid = [[(choices(states, weights)[0], 0) for _ in range(width)] for _ in range(height)]
+def generate_grid(
+    width: int, height: int, states: list, weights: list, random_start: bool = True
+) -> tuple:
+    grid = [
+        [(choices(states, weights)[0], 0) for _ in range(width)] for _ in range(height)
+    ]
     if random_start:
         x = randrange(0, height)
         y = randrange(0, width)
@@ -30,7 +34,7 @@ def generate_grid(width: int, height: int, states: list, weights: list, random_s
 
 
 def save_strategy(strategy: list):
-    with open("../last_strategy.txt", 'a') as f:
+    with open("../last_strategy.txt", "a") as f:
         f.write("\n" + str(strategy))
 
 
@@ -48,7 +52,7 @@ class Robot:
             "go_down": lambda x, y: self.move(x + 1, y),
             "go_left": lambda x, y: self.move(x, y - 1),
             "go_right": lambda x, y: self.move(x, y + 1),
-            "take_point": lambda x, y: self.take_point()
+            "take_point": lambda x, y: self.take_point(),
         }
         self.states = states
         self.points = 0
@@ -116,12 +120,16 @@ def generation_threed(evolution, key: int) -> tuple:
     grid_states = evolution.grid_states
     rewards = evolution.rewards
     moves = evolution.moves
-    #print(key)
+    # print(key)
     thread_pool = ThreadPool(env_per_strategy)
 
     def env_thread(number: int) -> int:
-        robot = Robot(width, height,
-                      generate_grid(width, height, grid_states, [0.7, 0.3]), rewards)
+        robot = Robot(
+            width,
+            height,
+            generate_grid(width, height, grid_states, [0.7, 0.3]),
+            rewards,
+        )
 
         [robot.play_strategy(population[key]) for _ in range(moves)]
         return robot.points
@@ -131,10 +139,24 @@ def generation_threed(evolution, key: int) -> tuple:
 
 
 class Evolution:
-    def __init__(self, width: int, height: int, init_pop_count: int, generation_count: int, env_per_strategy,
-                 keep_parents: bool = True, keep_best: int = 1000, moves: int = 200, mutation_rate: float = 0.03,
-                 rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-                                  "pickup_reward": 5}):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        init_pop_count: int,
+        generation_count: int,
+        env_per_strategy,
+        keep_parents: bool = True,
+        keep_best: int = 1000,
+        moves: int = 200,
+        mutation_rate: float = 0.03,
+        rewards: dict = {
+            "wall_penalty": 10,
+            "pickup_empty_penalty": 5,
+            "step_penalty": 1,
+            "pickup_reward": 5,
+        },
+    ):
         self.grid_states = ["empty", "point"]
         self.width = width
         self.height = height
@@ -162,20 +184,30 @@ class Evolution:
 
     def generate_init_population(self, population_size: int):
         for i in range(population_size):
-            strategy = [({"up": state[0],
-                          "down": state[1],
-                          "left": state[2],
-                          "right": state[3],
-                          "current": state[4]},
-                         {"action": choices(self.actions)[0]}) for state in
-                        product(self.states, repeat=len(self.actions))]
+            strategy = [
+                (
+                    {
+                        "up": state[0],
+                        "down": state[1],
+                        "left": state[2],
+                        "right": state[3],
+                        "current": state[4],
+                    },
+                    {"action": choices(self.actions)[0]},
+                )
+                for state in product(self.states, repeat=len(self.actions))
+            ]
             self.population[i] = strategy
 
     def play_generation(self):
 
-        with ProcessPool(max_workers=cpu_count() - 1) as pool: # TODO it take to match time, does it really run concurrently?
+        with ProcessPool(
+            max_workers=cpu_count() - 1
+        ) as pool:  # TODO it take to match time, does it really run concurrently?
             generation_thread_partial = partial(generation_threed, self)
-            future = pool.map(generation_thread_partial, list(self.population.keys()), timeout=60 * 5)
+            future = pool.map(
+                generation_thread_partial, list(self.population.keys()), timeout=60 * 5
+            )
 
             iterator = future.result()
             print(list(iterator))
@@ -183,12 +215,14 @@ class Evolution:
                 try:
                     result = next(iterator)
                     self.results[result[0]] = result[1], result[2]
-                    print("*", end='')
+                    print("*", end="")
                 except StopIteration:
-                    print("\n"+"_" * 50)
+                    print("\n" + "_" * 50)
                     break
                 except TimeoutError as error:
-                    print(f"function took longer than {error.args[1]} seconds", flush=True)
+                    print(
+                        f"function took longer than {error.args[1]} seconds", flush=True
+                    )
 
     @staticmethod
     def _get_best(results: dict) -> tuple:
@@ -235,10 +269,14 @@ class Evolution:
                 second_half = self.population[best[j + 1]][split_place:]
                 new_population[i] = first_half + second_half
 
-                if choices([0, 1], weights=[1 - self.mutation_rate, self.mutation_rate])[0]:
+                if choices(
+                    [0, 1], weights=[1 - self.mutation_rate, self.mutation_rate]
+                )[0]:
                     x = randrange(0, len(new_population[i]))
                     new_population[i][x] = (
-                        new_population[i][x][0], {"action": choices(self.actions)[0]})  # random mutation
+                        new_population[i][x][0],
+                        {"action": choices(self.actions)[0]},
+                    )  # random mutation
                 i += 1
 
         self.population = new_population

@@ -4,7 +4,7 @@ from pebble import ProcessPool, ProcessExpired
 
 def function(n):
     for i in range(1000000):
-       n= n + i
+        n = n + i
     return n
 
 

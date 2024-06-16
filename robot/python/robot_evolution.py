@@ -7,8 +7,12 @@ if __name__ == "__main__":
 
     steps: int = 150  # 300
 
-    rewards: dict = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-                     "pickup_reward": 5}
+    rewards: dict = {
+        "wall_penalty": 10,
+        "pickup_empty_penalty": 5,
+        "step_penalty": 1,
+        "pickup_reward": 5,
+    }
 
     evolution_parameters: dict = {
         "width": width // cell_size,
@@ -21,7 +25,7 @@ if __name__ == "__main__":
         "moves": steps,
         "mutation_rate": 0.04,
         "rewards": rewards,
-        "random_start": True  # it makes evolution harder
+        "random_start": True,  # it makes evolution harder
     }
 
     evolution = Evolution(**evolution_parameters)
@@ -31,7 +35,3 @@ if __name__ == "__main__":
     print(evolution.get_best(10))
     strategy = evolution.get_best_strategy()
     save_strategy(strategy)
-
-
-
-

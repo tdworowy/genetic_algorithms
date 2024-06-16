@@ -15,12 +15,20 @@ def generate_grid(width: int, height: int, weights: list) -> np.ndarray:
 
 
 def save_strategy(strategy: list):
-    with open("../last_strategy.txt", 'a') as f:
+    with open("../last_strategy.txt", "a") as f:
         f.write("\n" + str(strategy))
 
 
 class Robot:
-    def __init__(self, start_x: int, start_y: int, rewards: dict, width: int, height: int, weights: list):
+    def __init__(
+        self,
+        start_x: int,
+        start_y: int,
+        rewards: dict,
+        width: int,
+        height: int,
+        weights: list,
+    ):
         self.x = self.start_x = start_x
         self.y = self.start_y = start_y
 
@@ -40,14 +48,14 @@ class Robot:
             2: self.go_down,
             3: self.go_left,
             4: self.go_right,
-            5: self.take_point
+            5: self.take_point,
         }
         self.actions_debug = {
             1: "go_up",
             2: "go_down",
             3: "go_left",
             4: "go_right",
-            5: "take_point"
+            5: "take_point",
         }
 
     def set_start_position(self, start_x: int, start_y: int):
@@ -133,34 +141,36 @@ class Robot:
     def play_strategy(self, strategy: dict, moves_count: int, debug=False):
         for _ in range(moves_count):
             action = strategy[self.check_state()]
-            self.actions[
-                action
-            ]()
+            self.actions[action]()
             if debug:
                 print(self.actions_debug[action])
 
     def reset(self):
         self.points = 0
-        self.grid = generate_grid(width=self.width, height=self.height, weights=self.weights)
+        self.grid = generate_grid(
+            width=self.width, height=self.height, weights=self.weights
+        )
         self.x = self.start_x
         self.y = self.start_y
 
 
 def generate_strategy() -> dict:
     """
-     -1 <- wall
-      0 <- empty space
-      1 <- point
-      key:
-       0: above
-       1: right
-       2: below
-       3: left
-       4: current
-      value:
-       action (1 to 5)
+    -1 <- wall
+     0 <- empty space
+     1 <- point
+     key:
+      0: above
+      1: right
+      2: below
+      3: left
+      4: current
+     value:
+      action (1 to 5)
     """
-    strategy_all_sates = {state: choice([1, 2, 3, 4, 5]) for state in product([-1, 0, 1], repeat=5)}
+    strategy_all_sates = {
+        state: choice([1, 2, 3, 4, 5]) for state in product([-1, 0, 1], repeat=5)
+    }
     strategy_possible_states = {}
     for key, value in strategy_all_sates.items():
         match key:
@@ -179,15 +189,31 @@ def generate_strategy() -> dict:
 class Evolution:
     STRATEGY_LEN = 128  # it is constant
 
-    def __init__(self, init_pop_count: int, generation_count: int, env_per_strategy: int = 1,
-                 keep_parents: bool = True, keep_best: int = 200, moves: int = 200, mutation_rate: float = 0.03,
-                 rewards: dict = None, width: int = 20, height: int = 20, weights=None, random_start=False):
+    def __init__(
+        self,
+        init_pop_count: int,
+        generation_count: int,
+        env_per_strategy: int = 1,
+        keep_parents: bool = True,
+        keep_best: int = 200,
+        moves: int = 200,
+        mutation_rate: float = 0.03,
+        rewards: dict = None,
+        width: int = 20,
+        height: int = 20,
+        weights=None,
+        random_start=False,
+    ):
 
         if weights is None:
             weights = [0.7, 0.3]
         if rewards is None:
-            rewards = {"wall_penalty": 10, "pickup_empty_penalty": 5, "step_penalty": 1,
-                       "pickup_reward": 5}
+            rewards = {
+                "wall_penalty": 10,
+                "pickup_empty_penalty": 5,
+                "step_penalty": 1,
+                "pickup_reward": 5,
+            }
 
         self.moves = moves
         self.env_per_strategy = env_per_strategy
@@ -207,12 +233,14 @@ class Evolution:
 
         self.random_start = random_start
 
-        self.robot = Robot(start_x=0,
-                           start_y=0,
-                           rewards=self.rewards,
-                           width=self.width,
-                           height=self.height,
-                           weights=self.weights)
+        self.robot = Robot(
+            start_x=0,
+            start_y=0,
+            rewards=self.rewards,
+            width=self.width,
+            height=self.height,
+            weights=self.weights,
+        )
 
     @staticmethod
     def plot_learning_curve(generations: list, result: list):
@@ -293,10 +321,10 @@ def display_strategy(strategy: dict):
         print(f"{state_tuple}: {move[value]}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     strategy = generate_strategy()
     print(len(strategy))
-  # display_strategy(strategy)
+    # display_strategy(strategy)
     # grid = generate_grid(width=20, height=20, weights=[0.7, 0.3])
     # robot = Robot(start_x=0, start_y=0, grid=grid, rewards=rewards)
     #
